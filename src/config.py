@@ -57,6 +57,6 @@ HOLIDAYS_COUNTRY = "US"
 # Which provider to use for the web-search parks source: "gemini", "openai", or "off".
 # NOTE: the *free* Gemini/OpenAI tiers do NOT include web search / grounding, so a
 # usable parks source requires billing enabled on the chosen provider.
-PARKS_PROVIDER = "gemini"
+PARKS_PROVIDER = "off"
 GEMINI_MODEL = "gemini-flash-latest"
 OPENAI_MODEL = "gpt-4o"
