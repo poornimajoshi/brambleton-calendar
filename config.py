@@ -44,3 +44,14 @@ PARKS_KEYWORDS = [
     "hanson", "regional park", "nature center", "nature overlook",
     "splash pad", "nature explorer",
 ]
+
+# --- Attendability filter ---
+# Keep only events attendable outside a 9-5 weekday job: weekday events before
+# WORK_START_HOUR or at/after WORK_END_HOUR, plus ALL weekend and holiday events.
+ATTENDABLE_ONLY = True
+WORK_START_HOUR = 9
+WORK_END_HOUR = 17
+HOLIDAYS_COUNTRY = "US"
+
+# --- Parks via OpenAI web search (best-effort; skipped if OPENAI_API_KEY unset) ---
+OPENAI_MODEL = "gpt-4o"

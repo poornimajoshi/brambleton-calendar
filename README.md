@@ -10,6 +10,13 @@ Calendar. Runs automatically every day via GitHub Actions.
 | **Library** | Brambleton Library (Communico events API) | Age group "Birth – Age 5" |
 | **HOA** | Brambleton Community Association calendar (CivicPlus RSS) | Kid/family keywords |
 | **Parks** | Loudoun County calendar (CivicPlus RSS) | Hanson/nature + kid keywords |
+| **Parks (GPT)** | OpenAI web search over loudoun.gov / PRCS pages | Best-effort; needs `OPENAI_API_KEY` |
+
+All events then pass an **attendability filter**: only events outside a 9–5
+weekday job are kept — i.e. weekday events before 9am or after 5pm, plus **all**
+weekend and US-public-holiday events. All-day (self-paced) events are always
+kept. Adjust `WORK_START_HOUR` / `WORK_END_HOUR` / `ATTENDABLE_ONLY` in `config.py`,
+or set `ATTENDABLE_ONLY = False` to keep everything.
 
 ### Note on parks
 Hal & Berni Hanson Regional Park program registrations live in **WebTrac**
@@ -22,10 +29,12 @@ list, browse it manually: <https://www.loudoun.gov/2448/Activity-Guide>.
 
 ## How it works
 
-Each source is scraped into a common `Event`, de-duplicated, then written to
-Google Calendar. Every calendar event is tagged with a stable key
+Each source is scraped into a common `Event`, filtered, de-duplicated, then
+written to Google Calendar. Every calendar event is tagged with a stable key
 (`extendedProperties.private.brambletonKey`), so re-runs **update** existing
-events instead of creating duplicates.
+events instead of creating duplicates. Future events this tool created that no
+longer qualify (filtered out, cancelled, or removed from the source) are
+**pruned** on each run, so the calendar always reflects the current set.
 
 ## Local usage
 
@@ -58,10 +67,11 @@ python main.py
 
 ## Scheduled runs (GitHub Actions)
 
-Add two repository secrets (Settings → Secrets and variables → Actions):
+Add these repository secrets (Settings → Secrets and variables → Actions):
 
 - `GOOGLE_CALENDAR_ID` — the calendar ID.
 - `GOOGLE_SERVICE_ACCOUNT_JSON` — the **entire** service-account JSON file contents.
+- `OPENAI_API_KEY` — *optional*, enables the GPT web-search parks source.
 
 The workflow in `.github/workflows/sync.yml` runs daily (~6am ET) and can also be
 triggered manually via **Run workflow**.
@@ -74,3 +84,5 @@ Everything adjustable lives in `config.py`:
 - `LIBRARY_AGE_LABEL` — the library age bucket (`"Birth – Age 5"` is the finest
   the library exposes, so it also includes baby/toddler storytimes).
 - `KID_KEYWORDS` / `PARKS_KEYWORDS` — relevance keywords for the HOA and parks feeds.
+- `ATTENDABLE_ONLY`, `WORK_START_HOUR`, `WORK_END_HOUR` — the working-hours filter.
+- `OPENAI_MODEL` — model used for the GPT parks source.

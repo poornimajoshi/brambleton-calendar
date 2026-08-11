@@ -4,9 +4,15 @@ import argparse
 import logging
 import os
 
-from sources import hoa, library, parks
+from filters import is_attendable
+from sources import hoa, library, parks, parks_gpt
 
-SOURCES = [("library", library), ("hoa", hoa), ("parks", parks)]
+SOURCES = [
+    ("library", library),
+    ("hoa", hoa),
+    ("parks", parks),
+    ("parks_gpt", parks_gpt),
+]
 
 
 def load_dotenv(path=".env"):
@@ -31,7 +37,8 @@ def collect():
             events.extend(found)
         except Exception as exc:  # keep other sources working if one fails
             logging.error("%s failed: %s", name, exc)
-    # De-duplicate by stable key.
+    # Keep only events attendable outside working hours, then de-duplicate.
+    events = [e for e in events if is_attendable(e)]
     return list({e.key: e for e in events}.values())
 
 
@@ -55,8 +62,8 @@ def main():
 
     import gcal
 
-    created, updated = gcal.sync(events)
-    logging.info("done: %d created, %d updated", created, updated)
+    created, updated, deleted = gcal.sync(events)
+    logging.info("done: %d created, %d updated, %d deleted", created, updated, deleted)
 
 
 if __name__ == "__main__":

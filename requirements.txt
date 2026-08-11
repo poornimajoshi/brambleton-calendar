@@ -1,3 +1,5 @@
 requests>=2.31
 google-api-python-client>=2.100
 google-auth>=2.23
+holidays>=0.50
+openai>=1.40

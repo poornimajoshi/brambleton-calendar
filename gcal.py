@@ -2,7 +2,8 @@
 
 import json
 import os
-from datetime import timedelta
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
@@ -11,6 +12,8 @@ import config
 from models import Event
 
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
+MANAGED_TAG = "brambleton"
+SOURCES = ("library", "hoa", "parks")
 
 
 def _credentials():
@@ -39,7 +42,11 @@ def _body(ev: Event) -> dict:
         "location": ev.location,
         "description": description,
         "extendedProperties": {
-            "private": {"brambletonKey": ev.key, "source": ev.source}
+            "private": {
+                "brambletonKey": ev.key,
+                "source": ev.source,
+                "managedBy": MANAGED_TAG,
+            }
         },
     }
     if ev.all_day:
@@ -54,12 +61,47 @@ def _body(ev: Event) -> dict:
     return body
 
 
-def sync(events: list[Event]) -> tuple[int, int]:
-    """Insert new events and update existing ones. Returns (created, updated)."""
+def _managed_future_events(service, calendar_id) -> dict[str, dict]:
+    """All future events previously created by this tool, keyed by event id.
+
+    Queried per source so legacy events (tagged before managedBy existed) are
+    also included.
+    """
+    now = datetime.now(ZoneInfo(config.TIMEZONE)).isoformat()
+    found: dict[str, dict] = {}
+    for source in SOURCES:
+        page_token = None
+        while True:
+            resp = (
+                service.events()
+                .list(
+                    calendarId=calendar_id,
+                    privateExtendedProperty=f"source={source}",
+                    timeMin=now,
+                    showDeleted=False,
+                    singleEvents=True,
+                    maxResults=250,
+                    pageToken=page_token,
+                )
+                .execute()
+            )
+            for item in resp.get("items", []):
+                found[item["id"]] = item
+            page_token = resp.get("nextPageToken")
+            if not page_token:
+                break
+    return found
+
+
+def sync(events: list[Event]) -> tuple[int, int, int]:
+    """Upsert current events and prune future ones that no longer qualify.
+
+    Returns (created, updated, deleted).
+    """
     service = _service()
     calendar_id = os.environ["GOOGLE_CALENDAR_ID"]
 
-    created = updated = 0
+    created = updated = deleted = 0
     for ev in events:
         existing = (
             service.events()
@@ -82,4 +124,14 @@ def sync(events: list[Event]) -> tuple[int, int]:
         else:
             service.events().insert(calendarId=calendar_id, body=body).execute()
             created += 1
-    return created, updated
+
+    # Prune future managed events that are no longer in the current set
+    # (e.g. filtered out, cancelled, or removed from the source).
+    current_keys = {ev.key for ev in events}
+    for item in _managed_future_events(service, calendar_id).values():
+        key = item.get("extendedProperties", {}).get("private", {}).get("brambletonKey")
+        if key not in current_keys:
+            service.events().delete(calendarId=calendar_id, eventId=item["id"]).execute()
+            deleted += 1
+
+    return created, updated, deleted
