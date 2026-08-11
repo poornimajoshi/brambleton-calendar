@@ -9,11 +9,26 @@ source URL is dropped.
 """
 
 import json
+import logging
 from datetime import datetime, timedelta
+
+import requests
 
 import config
 from models import Event
 from sources.util import TZ, local_dt
+
+
+def _url_ok(url: str) -> bool:
+    """Reject AI-hallucinated links by requiring the page to actually resolve."""
+    headers = {"User-Agent": config.USER_AGENT}
+    try:
+        resp = requests.head(url, headers=headers, timeout=8, allow_redirects=True)
+        if resp.status_code == 405:  # some servers reject HEAD
+            resp = requests.get(url, headers=headers, timeout=8, allow_redirects=True)
+        return resp.status_code < 400
+    except requests.RequestException:
+        return False
 
 _PROMPT = """\
 Find children's events and programs suitable for ages 3-5 taking place at
@@ -64,6 +79,9 @@ def build_events(text: str) -> list[Event]:
         except (KeyError, ValueError, TypeError):
             continue
         if not today <= day <= window_end:
+            continue
+        if not _url_ok(url):
+            logging.info("parks: dropping event with unreachable url %s", url)
             continue
 
         start_time = item.get("start_time")

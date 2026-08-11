@@ -56,7 +56,7 @@ HOLIDAYS_COUNTRY = "US"
 # --- LLM parks source (best-effort; WebTrac is Cloudflare-blocked) ---
 # Which provider to use for the web-search parks source: "gemini", "openai", or "off".
 # NOTE: the *free* Gemini/OpenAI tiers do NOT include web search / grounding, so a
-# usable parks source requires billing enabled on the chosen provider. Kept "off".
-PARKS_PROVIDER = "off"
+# usable parks source requires billing enabled on the chosen provider.
+PARKS_PROVIDER = "gemini"
 GEMINI_MODEL = "gemini-flash-latest"
 OPENAI_MODEL = "gpt-4o"
