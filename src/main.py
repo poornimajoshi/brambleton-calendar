@@ -52,10 +52,17 @@ def main():
     parser.add_argument(
         "--dry-run", action="store_true", help="Print events without touching the calendar."
     )
+    parser.add_argument(
+        "--cleanup",
+        action="store_true",
+        help="Also delete stale PAST events left by earlier runs, not just future ones.",
+    )
     args = parser.parse_args()
 
     load_dotenv()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    for noisy in ("google_genai", "httpx", "google.genai"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
     events = sorted(collect(), key=lambda e: e.start)
     logging.info("collected %d unique events", len(events))
 
@@ -67,7 +74,7 @@ def main():
 
     import gcal
 
-    created, updated, deleted = gcal.sync(events)
+    created, updated, deleted = gcal.sync(events, prune_past=args.cleanup)
     logging.info("done: %d created, %d updated, %d deleted", created, updated, deleted)
 
 

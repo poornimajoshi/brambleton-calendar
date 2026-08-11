@@ -15,7 +15,7 @@ Calendar. Runs automatically every day via GitHub Actions.
 All events then pass an **attendability filter**: only events outside a 9–5
 weekday job are kept — i.e. weekday events before 9am or after 5pm, plus **all**
 weekend and US-public-holiday events. All-day (self-paced) events are always
-kept. Adjust `WORK_START_HOUR` / `WORK_END_HOUR` / `ATTENDABLE_ONLY` in `config.py`,
+kept. Adjust `WORK_START_HOUR` / `WORK_END_HOUR` / `ATTENDABLE_ONLY` in `src/config.py`,
 or set `ATTENDABLE_ONLY = False` to keep everything.
 
 ### Note on parks
@@ -23,9 +23,9 @@ Hal & Berni Hanson Regional Park program registrations live in **WebTrac**
 (`valoudounctyweb.myvscloud.com`), which is behind Cloudflare bot protection and
 cannot be scraped from an automated job. Two fallbacks exist:
 
-1. The county's public CivicPlus calendar (`sources/parks.py`) — always on, but
-   only picks up park/nature kids events if the county publishes them there.
-2. An LLM web-search source (`sources/parks_gemini.py` / `parks_gpt.py`), set via
+1. The county's public CivicPlus calendar (`src/sources/parks.py`) — always on,
+   but only picks up park/nature kids events if the county publishes them there.
+2. An LLM web-search source (`src/sources/parks_gemini.py` / `parks_gpt.py`), set via
    `PARKS_PROVIDER`. **Off by default**, because the free Gemini/OpenAI tiers do
    *not* include web search / grounding — enabling it requires billing on the
    provider (e.g. Google Search grounding is ~free once a card is on file). Set
@@ -51,7 +51,7 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
 # See what would be synced, no credentials needed:
-python main.py --dry-run
+python src/main.py --dry-run
 ```
 
 ## Google Calendar setup (service account)
@@ -70,7 +70,7 @@ Run it locally:
 cp .env.example .env   # fill in values, or export the vars directly
 export GOOGLE_CALENDAR_ID="your_calendar_id"
 export GOOGLE_APPLICATION_CREDENTIALS="./service-account.json"
-python main.py
+python src/main.py
 ```
 
 ## Scheduled runs (GitHub Actions)
@@ -86,7 +86,7 @@ triggered manually via **Run workflow**.
 
 ## Tuning
 
-Everything adjustable lives in `config.py`:
+Everything adjustable lives in `src/config.py`:
 
 - `LOOKAHEAD_DAYS` — how far ahead to pull events.
 - `LIBRARY_AGE_LABEL` — the library age bucket (`"Birth – Age 5"` is the finest

@@ -61,13 +61,13 @@ def _body(ev: Event) -> dict:
     return body
 
 
-def _managed_future_events(service, calendar_id) -> dict[str, dict]:
-    """All future events previously created by this tool, keyed by event id.
+def _managed_events(service, calendar_id, include_past: bool) -> dict[str, dict]:
+    """Events previously created by this tool, keyed by event id.
 
     Queried per source so legacy events (tagged before managedBy existed) are
-    also included.
+    also included. When include_past is False, only future events are returned.
     """
-    now = datetime.now(ZoneInfo(config.TIMEZONE)).isoformat()
+    time_min = None if include_past else datetime.now(ZoneInfo(config.TIMEZONE)).isoformat()
     found: dict[str, dict] = {}
     for source in SOURCES:
         page_token = None
@@ -77,7 +77,7 @@ def _managed_future_events(service, calendar_id) -> dict[str, dict]:
                 .list(
                     calendarId=calendar_id,
                     privateExtendedProperty=f"source={source}",
-                    timeMin=now,
+                    timeMin=time_min,
                     showDeleted=False,
                     singleEvents=True,
                     maxResults=250,
@@ -93,10 +93,12 @@ def _managed_future_events(service, calendar_id) -> dict[str, dict]:
     return found
 
 
-def sync(events: list[Event]) -> tuple[int, int, int]:
-    """Upsert current events and prune future ones that no longer qualify.
+def sync(events: list[Event], prune_past: bool = False) -> tuple[int, int, int]:
+    """Upsert current events and prune ones that no longer qualify.
 
-    Returns (created, updated, deleted).
+    By default only future events are pruned; pass prune_past=True to also
+    remove stale past events left by earlier runs. Returns (created, updated,
+    deleted).
     """
     service = _service()
     calendar_id = os.environ["GOOGLE_CALENDAR_ID"]
@@ -128,7 +130,7 @@ def sync(events: list[Event]) -> tuple[int, int, int]:
     # Prune future managed events that are no longer in the current set
     # (e.g. filtered out, cancelled, or removed from the source).
     current_keys = {ev.key for ev in events}
-    for item in _managed_future_events(service, calendar_id).values():
+    for item in _managed_events(service, calendar_id, include_past=prune_past).values():
         key = item.get("extendedProperties", {}).get("private", {}).get("brambletonKey")
         if key not in current_keys:
             service.events().delete(calendarId=calendar_id, eventId=item["id"]).execute()
