@@ -10,7 +10,7 @@ Calendar. Runs automatically every day via GitHub Actions.
 | **Library** | Brambleton Library (Communico events API) | Age group "Birth – Age 5" |
 | **HOA** | Brambleton Community Association calendar (CivicPlus RSS) | Kid/family keywords |
 | **Parks** | Loudoun County calendar (CivicPlus RSS) | Hanson/nature + kid keywords |
-| **Parks (GPT)** | OpenAI web search over loudoun.gov / PRCS pages | Best-effort; needs `OPENAI_API_KEY` |
+| **Parks (LLM)** | Gemini/OpenAI web search over loudoun.gov / PRCS pages | Best-effort; **off by default** |
 
 All events then pass an **attendability filter**: only events outside a 9–5
 weekday job are kept — i.e. weekday events before 9am or after 5pm, plus **all**
@@ -21,11 +21,19 @@ or set `ATTENDABLE_ONLY = False` to keep everything.
 ### Note on parks
 Hal & Berni Hanson Regional Park program registrations live in **WebTrac**
 (`valoudounctyweb.myvscloud.com`), which is behind Cloudflare bot protection and
-cannot be scraped from an automated job. The parks source therefore reads the
-county's public calendar as a best-effort fallback — it only picks up park/nature
-kids events if the county publishes them there. Library programs held *at* Hanson
-park still come through the **Library** source. To see the full WebTrac program
-list, browse it manually: <https://www.loudoun.gov/2448/Activity-Guide>.
+cannot be scraped from an automated job. Two fallbacks exist:
+
+1. The county's public CivicPlus calendar (`sources/parks.py`) — always on, but
+   only picks up park/nature kids events if the county publishes them there.
+2. An LLM web-search source (`sources/parks_gemini.py` / `parks_gpt.py`), set via
+   `PARKS_PROVIDER`. **Off by default**, because the free Gemini/OpenAI tiers do
+   *not* include web search / grounding — enabling it requires billing on the
+   provider (e.g. Google Search grounding is ~free once a card is on file). Set
+   `PARKS_PROVIDER = "gemini"` (or `"openai"`) and provide the matching API key.
+
+Library programs held *at* Hanson park still come through the **Library** source.
+To see the full WebTrac program list, browse it manually:
+<https://www.loudoun.gov/2448/Activity-Guide>.
 
 ## How it works
 

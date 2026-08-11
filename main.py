@@ -4,15 +4,20 @@ import argparse
 import logging
 import os
 
+import config
 from filters import is_attendable
-from sources import hoa, library, parks, parks_gpt
+from sources import hoa, library, parks
 
-SOURCES = [
-    ("library", library),
-    ("hoa", hoa),
-    ("parks", parks),
-    ("parks_gpt", parks_gpt),
-]
+SOURCES = [("library", library), ("hoa", hoa), ("parks", parks)]
+
+if config.PARKS_PROVIDER == "gemini":
+    from sources import parks_gemini
+
+    SOURCES.append(("parks_gemini", parks_gemini))
+elif config.PARKS_PROVIDER == "openai":
+    from sources import parks_gpt
+
+    SOURCES.append(("parks_gpt", parks_gpt))
 
 
 def load_dotenv(path=".env"):

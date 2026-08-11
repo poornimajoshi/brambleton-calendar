@@ -53,5 +53,10 @@ WORK_START_HOUR = 9
 WORK_END_HOUR = 17
 HOLIDAYS_COUNTRY = "US"
 
-# --- Parks via OpenAI web search (best-effort; skipped if OPENAI_API_KEY unset) ---
+# --- LLM parks source (best-effort; WebTrac is Cloudflare-blocked) ---
+# Which provider to use for the web-search parks source: "gemini", "openai", or "off".
+# NOTE: the *free* Gemini/OpenAI tiers do NOT include web search / grounding, so a
+# usable parks source requires billing enabled on the chosen provider. Kept "off".
+PARKS_PROVIDER = "off"
+GEMINI_MODEL = "gemini-flash-latest"
 OPENAI_MODEL = "gpt-4o"
